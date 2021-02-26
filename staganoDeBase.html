@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>STEGANO</title>
+</head>
+<body>
+	<p>Pour fonctionner, il faut exectuer cette page au choix :</p> 
+	<ul>
+	<li>soit dans firefox 
+	<ol>
+		<li>Ouvrir un nouvel onglet, tapez à la place de l'URL: about:config
+		<li>Cliquez sur : Ok je ferai attention...
+		<li>Recherchez : security.fileuri.strict_origin_policy
+		<li>Cliquez sur true pour passer à false
+		<li>Rafraichir notre page
+		<li>Surtout après le TP: N'OUBLIEZ PAS DE REPASSER A TRUE security.fileuri.strict_origin_policy
+	</ol>
+
+	<li>soit dans un serveur web (<a href="https://sourceforge.net/projects/wampserver/">wamp</a> pour windows, 
+	<a href="https://www.mamp.info/en/downloads/">mamp</a> pour mac,
+	<a href="http://doc.ubuntu-fr.org/lamp">lamp</a> pour linux,
+	avec un plugin <i>live serveur</i> dans visual studio, <a href="https://parceljs.org/getting_started.html">parcel</a> requière NodeJs...)
+	</ul>
+	
+	<button onClick="stegano();" >dechiffrer</button>
+	<p><img src="old1bit.png" id='monImage'></p>
+
+	<script>
+	function stegano() {			
+		// LECTURES DES PIXELS DE L'IMAGE
+		/////////////////////////////////////
+		var img = document.getElementById('monImage');
+		var canvas = document.createElement('canvas')
+		var context = canvas.getContext('2d');
+		
+		// Obtention des pixels à partir des coordonnées et dimenssions de l'image
+		width = img.width;
+		height = img.height;
+		canvas.width = width;
+		canvas.height = height;
+		context.drawImage(img, 0, 0, width, height);
+		var imgd = context.getImageData(0, 0, width, height);
+		var pix = imgd.data;
+		console.log("height="+height+", width="+width);
+		
+		// Génération de tableaux 2D pour simplifier la gestion du voisinage
+		// ex: pour une image de 3 colonnes 2 lignes
+		// 1 tab 1D pix = [r,g,b,a, r,g,b,a, r,g,b,a, r,g,b,a, r,g,b,a, r,g,b,a,] 
+		// 4 tab 2D tr = [[r, r, r],[r, r, r]], tg = [[g, g, g],[g, g, g]], tb = [[b, b, b],[b, b, b]], ta = [[a, a, a],[a, a, a]]
+		
+		// déclaration de 4 tableaux à 2 dim (de taille width * height)
+		var tr = new Array(width).fill().map(() => Array(height));
+		var tg = new Array(width).fill().map(() => Array(height));
+		var tb = new Array(width).fill().map(() => Array(height));
+		var ta = new Array(width).fill().map(() => Array(height));
+		
+		// copie des valeurs 1D -> 2D
+		for (var y = 0; y < height; y++) { 
+			for (var x = 0; x < width; x++) {
+				tr[x][y] = pix[x*4+y*(width*4)+0];
+				tg[x][y] = pix[x*4+y*(width*4)+1];
+				tb[x][y] = pix[x*4+y*(width*4)+2];
+				ta[x][y] = pix[x*4+y*(width*4)+3];
+			}
+		}
+		console.log("height="+height+", width="+width);
+		console.log("couleur (r,g,b,a) du premier pixel = ("+tr[0][0]+","+tg[0][0]+","+tb[0][0]+","+ta[0][0]+")");
+
+
+		// LECTURE DES 8 PREMIERS PIXELS
+		////////////////////////////////
+		for (var y = 0; y < 1; y++) { 
+			for (var x = 0; x < 8; x++) {
+				console.log("(r,g,b,a)["+x+","+y+"] = ("+tr[x][y]+","+tg[x][y]+","+tb[x][y]+","+ta[x][y]+")");
+			}
+		}
+		
+		// RETOUR EN 1D POUR AFFICHER LES MODIFICATIONS DANS L'IMAGE
+		// 4 tab 2D (r,g,b,a) -> 1 tab 1D POUR METTRE A JOUR L'IMAGE
+		for (var y = 0; y < height; y++) { 
+			for (var x = 0; x < width; x++) {
+				pix[x*4+y*(width*4)+0] = 0;
+				pix[x*4+y*(width*4)+1] = tg[x][y];
+				pix[x*4+y*(width*4)+2] = tb[x][y];
+				pix[x*4+y*(width*4)+3] = ta[x][y];
+			}
+		}
+
+		// ECRITURE DANS L'IMAGE
+		////////////////////////////////
+		context.putImageData(imgd, 0, 0);
+		var data = canvas.toDataURL('image/png');
+		img.setAttribute('src', data);
+	}
+			
+	</script>
+</body>
+</html>
